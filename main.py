@@ -7,21 +7,55 @@ pisos = [
     {
         "nombre": "Piso 10 - Espacio Panorámico",
         "tipo": "grupal o individual",
-        "lugar grupal": [0, 1, 0, 0, 0, 0, 1], 
-        "lugar individual": [0, 1, 0, 0, 0, 0, 1, 0, 0, 0],
+        "lugar grupal": [
+            {"estado": 0, "enchufe": True, "pizarron":True, "tipo": "grupal", "usuario": None},
+            {"estado": 1, "enchufe": True, "pizarron":True, "tipo": "grupal", "usuario": "Jorge"},
+            {"estado": 0, "enchufe": True, "pizarron":True, "tipo": "grupal", "usuario": None},
+            {"estado": 0, "enchufe": True, "pizarron":False, "tipo": "grupal", "usuario": None},
+            {"estado": 0, "enchufe": True, "pizarron":True, "tipo": "grupal", "usuario": None},
+            {"estado": 1, "enchufe": True, "pizarron":False, "tipo": "grupal", "usuario": "Santiago"},
+            {"estado": 0, "enchufe": True, "pizarron":True, "tipo": "grupal", "usuario": None},
+        ], 
+        "lugar individual": [
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None},
+            {"estado": 1, "enchufe": False, "tipo": "individual", "usuario": "Juan"},
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None},
+            {"estado": 0, "enchufe": False, "tipo": "individual", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None},
+            {"estado": 1, "enchufe": True, "tipo": "individual", "usuario": "Luis"},
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None},
+            {"estado": 0, "enchufe": False, "tipo": "individual", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "individual", "usuario": None}
+        ],
         "descripcion": "El lugar más grande de UADE, con mesas y sillones cómodos, enchufes y pizarras para estudiar solo o en grupo."
     },
     {
         "nombre": "Chile 2 - Espacio Silencioso",
         "tipo": "silencio / conversación baja",
-        "lugar silencio": [0, 0, 0, 0],           
-        "lugar conversacion baja": [1, 0, 0, 0],  
+        "lugar silencio": [
+            {"estado": 0, "enchufe": True, "tipo": "silencio", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "silencio", "usuario": None},
+            {"estado": 0, "enchufe": False, "tipo": "silencio", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "silencio", "usuario": None}
+        ],           
+        "lugar conversacion baja": [
+            {"estado": 1, "enchufe": True, "tipo": "conversacion baja", "usuario": "Clara"},
+            {"estado": 0, "enchufe": False, "tipo": "conversacion baja", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "conversacion baja", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "conversacion baja", "usuario": None}
+        ],  
         "descripcion": "Un espacio reducido, dividido en dos sectores: uno en silencio total y otro donde se puede hablar bajito."
     },
     {
         "nombre": "UADE Labs - Espacio Tech",
         "tipo": "computadora disponible",
-        "lugares con computadora": [0, 0, 1, 0],
+        "lugares con computadora": [
+            {"estado": 0, "enchufe": True, "tipo": "computadora", "usuario": None},
+            {"estado": 0, "enchufe": True, "tipo": "computadora", "usuario": None},
+            {"estado": 1, "enchufe": True, "tipo": "computadora", "usuario": "Mario"},
+            {"estado": 0, "enchufe": True, "tipo": "computadora", "usuario": None}
+        ],
         "descripcion": "Un espacio chico con computadoras disponibles y salones equipados para trabajo práctico."
     }
 ]
@@ -36,116 +70,240 @@ estados = {0: "libre", 1:"ocupado"}
 
 # 1) Función que muestra la disponibilidad total en todos los pisos
 def consultaTotal(pisos):
-    for piso in pisos:                                         # Recorremos cada piso
-        total_libres = 0                                       # Contador de lugares libres
-        
-        # Lista de claves que contienen lugares (cada piso puede tener distintas) para no hacer un if eterno
-        claves_lugares = ["lugar grupal", "lugar individual", "lugar silencio", 
-                        "lugar conversacion baja", "lugares con computadora"]
-        
-        # Recorremos solo las claves que existen en el piso
-        for clave in claves_lugares:
-            if clave in piso:                                   # Verificamos que la clave exista
-                for lugar in piso[clave]:                       # Recorremos cada lugar
-                    if lugar == 0:                              # Si el lugar está libre
-                        total_libres += 1                       # Sumamos 1 al total
-        
-        print(f"En {piso['nombre']}: hay {total_libres} lugares disponibles")  # Mostramos total
+    for piso in pisos:
+        total_libres = 0
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                lugares = piso[clave]
+                for lugar in lugares:
+                    if lugar["estado"] == 0:
+                        total_libres += 1
+        print(f"En {piso['nombre']}: hay {total_libres} lugares disponibles")
+
 
 
 
 # 2) Función que muestra el estado de cada lugar en un piso elegido
 def consultarDisponibilidad(pisos, piso_num):
-    if piso_num < 0 or piso_num >= len(pisos):                          # Validamos que el piso exista
-        print("El número de piso ingresado no es válido. Ingresá otro...")
+    if piso_num < 0 or piso_num >= len(pisos):
+        print("El número de piso ingresado no es válido.")
         return
 
-    piso = pisos[piso_num]                                              # Obtenemos el diccionario del piso
-    print(f"\n{piso['nombre']}")                                        # Mostramos el nombre del piso
+    piso = pisos[piso_num]
+    print(f"\n{piso['nombre']}")
 
-    # Lista de posibles claves que contienen lugares
-    claves_lugares = ["lugar grupal", "lugar individual", "lugar silencio", 
-                    "lugar conversacion baja", "lugares con computadora"]
+    for clave in piso:
+        if clave not in ["nombre", "tipo", "descripcion"]:
+            print(f"\nTipo: {clave}")
+            lugares = piso[clave]
+            for i in range(len(lugares)):
+                estado = "libre" if lugares[i]["estado"] == 0 else "ocupado"
+                usuario = lugares[i]["usuario"]
+                if estado == "ocupado":
+                    print(f"Lugar {i + 1}: {estado} (Usuario: {usuario})")
+                else:
+                    print(f"Lugar {i + 1}: {estado}")
 
-    # Recorremos solo las claves que existen en este piso
-    for clave in claves_lugares:
-        if clave in piso:                                               # Verificamos que exista
-            print(f"\nTipo: {clave}")                                   # Mostramos el tipo de lugar
-            lugares = piso[clave]                                       # Lista de lugares para ese tipo
-
-            for i in range(len(lugares)):                               # Recorremos cada lugar
-                estado = "libre" if lugares[i] == 0 else "ocupado"      # Determinamos el estado con comprension
-                print(f"Lugar {i + 1}: {estado}")                       # Mostramos el lugar y su estado
 
 
 
 # 3) Función para mostrar todos los lugares libres de todos los pisos
 def verLugaresLibres(pisos):
-    for piso in pisos:                                          # Recorremos cada piso
-        print(f"\n{piso['nombre']}")                            # Mostramos nombre del piso
-
-        claves_lugares = ["lugar grupal", "lugar individual", "lugar silencio",
-                        "lugar conversacion baja", "lugares con computadora"]
-
-        for clave in claves_lugares:
-            if clave in piso:                                   # Verificamos existencia
-                libres = []                                     # Lista para los lugares libres
-                for i in range(len(piso[clave])):               # Iteramos por índice
-                    if piso[clave][i] == 0:
-                        libres.append(i + 1)                    # Guardamos los lugares libres
-                
-                print(f"\nTipo: {clave}")                       # Mostramos tipo de lugar
+    for piso in pisos:
+        print(f"\n{piso['nombre']}")
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                libres = []
+                lugares = piso[clave]
+                for i in range(len(lugares)):
+                    if lugares[i]["estado"] == 0:
+                        libres.append(i + 1)
+                print(f"\nTipo: {clave}")
                 if libres:
-                    for j in range(0, len(libres), 5):          # Mostramos de a 5 (avanza de 5 en 5, así que si hay muchos
-                        for lugar in libres[j:j+5]:             # lugares libres, no imprime una línea larguísima)
+                    for j in range(0, len(libres), 5):
+                        for lugar in libres[j:j+5]:
                             print(lugar, end="  ")
                     print()
                 else:
                     print("No hay lugares libres en este tipo")
 
 # 4) Función para reservar un lugar
-def reservarLugar(pisos, piso_num, tipo, lugar_num):
-    if piso_num < 0 or piso_num >= len(pisos):    # Validamos piso
-        print("El número de piso ingresado no es válido.")
-        return
-    
-    piso = pisos[piso_num]                       # Obtenemos el piso
-    if tipo not in piso:                         # Validamos tipo de lugar
-        print("Ese tipo de lugar no existe en este piso.")
-        return
-    
-    lugares = piso[tipo]                         # Obtenemos la lista de lugares
-    if lugar_num < 1 or lugar_num > len(lugares):
-        print("El número de lugar no es válido.")
-        return
+def reservarLugar(pisos):
+    # Elegir piso
+    print("\nPisos disponibles:")
+    i = 1
+    for piso_dict in pisos:
+        print(i, piso_dict['nombre'])
+        i += 1
+    piso_num = int(input("\n✶ Elegí el número del piso: ")) - 1
+    if piso_num < 0 or piso_num >= len(pisos): return
+    piso = pisos[piso_num]
 
-    if lugares[lugar_num - 1] == 0:              # Verificamos si está libre
-        lugares[lugar_num - 1] = 1               # Lo reservamos (cambiamos a 1)
-        print(f"¡El lugar {lugar_num} en {piso['nombre']} fue reservado con éxito!")
-    else:
-        print(f"El lugar {lugar_num} ya está ocupado.")
+    # Elegir tipo de lugar
+    tipos = [t for t in piso if t not in ["nombre","tipo","descripcion"]]
+    print("\nTipos de lugar disponibles:")
+    i = 1
+    for t in tipos:
+        print(i, t)
+        i += 1
+    tipo_num = int(input("\n✶ Elegí el tipo de lugar por número: ")) - 1
+    if tipo_num < 0 or tipo_num >= len(tipos): return
+    tipo = tipos[tipo_num]
+    lugares = piso[tipo]
+
+    # Elegir lugar libre
+    libres = []
+    j = 1
+    for lugar in lugares:
+        if lugar["estado"] == 0: libres.append(j)
+        j += 1
+    if not libres: 
+        print("No hay lugares libres"); return
+    print("\nLugares libres disponibles:", libres)
+    lugar_num = int(input("\n✶ Elegí el número de lugar: "))
+    if lugar_num not in libres: return
+
+    # Reservar
+    usuario = input("✶ Ingresá tu nombre: ").strip()
+    lugares[lugar_num-1]["estado"] = 1
+    lugares[lugar_num-1]["usuario"] = usuario
+    print(f"¡Lugar {lugar_num} en {piso['nombre']} reservado por {usuario}!")
+
+
 
 # 5) Función para liberar un lugar
-def liberarLugar(pisos, piso_num, tipo, lugar_num):
-    if piso_num < 0 or piso_num >= len(pisos):   # Validamos piso
-        print("El número de piso ingresado no es válido.")
-        return
-    
-    piso = pisos[piso_num]                      # Obtenemos el piso
-    if tipo not in piso:                        # Validamos tipo de lugar
-        print("Ese tipo de lugar no existe en este piso.")
-        return
-    
-    lugares = piso[tipo]
-    if lugar_num < 1 or lugar_num > len(lugares):
-        print("El número de lugar no es válido.")
-        return
+def liberarLugar(pisos):
+    # Elegir piso
+    print("\nPisos disponibles:")
+    i = 1
+    for piso_dict in pisos:
+        print(i, piso_dict['nombre'])
+        i += 1
+    piso_num = int(input("\n✶ Elegí el número del piso: ")) - 1
+    if piso_num < 0 or piso_num >= len(pisos): return
+    piso = pisos[piso_num]
 
-    if lugares[lugar_num - 1] == 1:             # Verificamos si está ocupado
-        lugares[lugar_num - 1] = 0              # Lo liberamos (cambiamos a 0)
-        print(f"¡El lugar {lugar_num} en {piso['nombre']} fue liberado con éxito!")
+    # Elegir tipo de lugar
+    tipos = [t for t in piso if t not in ["nombre","tipo","descripcion"]]
+    print("\nTipos de lugar disponibles:")
+    i = 1
+    for t in tipos:
+        print(i, t)
+        i += 1
+    tipo_num = int(input("\n✶ Elegí el tipo de lugar por número: ")) - 1
+    if tipo_num < 0 or tipo_num >= len(tipos): return
+    tipo = tipos[tipo_num]
+    lugares = piso[tipo]
+
+    # Elegir lugar ocupado
+    ocupados = []
+    j = 1
+    for lugar in lugares:
+        if lugar["estado"] == 1: ocupados.append(j)
+        j += 1
+    if not ocupados: 
+        print("No hay lugares ocupados"); return
+    print("\nLugares ocupados disponibles:", ocupados)
+    lugar_num = int(input("\n✶ Elegí el número de lugar a liberar: "))
+    if lugar_num not in ocupados: return
+
+    # Liberar
+    lugares[lugar_num-1]["estado"] = 0
+    lugares[lugar_num-1]["usuario"] = None
+    print(f"¡Lugar {lugar_num} en {piso['nombre']} liberado con éxito!")
+
+
+def verUsuariosActivos(pisos):
+    usuarios = {}
+    for piso in pisos:
+        nombre_piso = piso["nombre"]
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                lugares = piso[clave]
+                indice = 1
+                for lugar in lugares:
+                    if lugar["estado"] == 1 and lugar["usuario"] != None:
+                        if lugar["usuario"] not in usuarios:
+                            usuarios[lugar["usuario"]] = set()
+                        usuarios[lugar["usuario"]].add((nombre_piso, clave, indice))
+                    indice += 1
+
+    if usuarios:
+        print("Usuarios con reservas activas:")
+        for usuario in usuarios:
+            print("", usuario, "tiene reservados:")
+            for reserva in usuarios[usuario]:
+                print("  Piso:", reserva[0], "| Tipo:", reserva[1], "| Lugar:", reserva[2])
     else:
-        print(f"El lugar {lugar_num} ya estaba libre.")
+        print("No hay usuarios con reservas activas.")
+
+def mostrarPorcentajes(pisos):
+    ocupaciones = {}
+
+    for piso in pisos:
+        total_lugares = 0
+        ocupados = 0
+
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                lugares = piso[clave]
+                total_lugares += len(lugares)
+                for lugar in lugares:
+                    if lugar["estado"] == 1:
+                        ocupados += 1
+
+        if total_lugares > 0:
+            porcentaje = (ocupados / total_lugares) * 100
+        else:
+            porcentaje = 0
+
+        ocupaciones[piso["nombre"]] = porcentaje
+        print(f"{piso['nombre']}: {porcentaje:.2f}% ocupación")
+
+    if ocupaciones:
+        max_ocupacion = -1
+        piso_mas_ocupado = ""
+        for nombre, porcentaje in ocupaciones.items():
+            if porcentaje > max_ocupacion:
+                max_ocupacion = porcentaje
+                piso_mas_ocupado = nombre
+        print(f"\nPiso más ocupado: {piso_mas_ocupado} ({max_ocupacion:.2f}% ocupación)")
+
+def filtrarPorAtributoSimple(pisos):
+    atributos = ["enchufe", "pizarron"]
+
+    print("Atributos disponibles:")
+    i = 1
+    for atributo in atributos:
+        print(i, atributo)
+        i += 1
+    print(0, "Mostrar todos")
+
+    opcion = input("Elegí un atributo por número: ").strip()
+    atributo_seleccionado = ""
+    if opcion == "1":
+        atributo_seleccionado = "enchufe"
+    elif opcion == "2":
+        atributo_seleccionado = "pizarron"
+
+    lugares_filtrados = []
+    for piso in pisos:
+        nombre_piso = piso["nombre"]
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                numero_lugar = 1 
+                for lugar in piso[clave]:
+                    if lugar["estado"] == 0 and (atributo_seleccionado == "" or lugar.get(atributo_seleccionado, False)):
+                        lugares_filtrados.append((nombre_piso, clave, numero_lugar))
+                    numero_lugar += 1
+
+    # Mostrar los resultados
+    if lugares_filtrados:
+        print("\nLugares libres filtrados:")
+        for lugar in lugares_filtrados:
+            print("Piso:", lugar[0], "| Tipo:", lugar[1], "| Lugar:", lugar[2])
+    else:
+        print("No se encontraron lugares libres con ese atributo.")
 
 """ ---------MENÚ PRINCIPAL--------- """
 # Es el primer menú que ve el usuario, permite entrar a submenús o salir
@@ -164,6 +322,9 @@ def menuPrincipal(pisos):
         print("2. Consultar disponibilidad")
         print("3. Reservar")
         print("4. Liberar")
+        print("5. Ver usuarios activos")
+        print("6. Ver porcentjaes")
+        print("7. Filtrar por atributo")
         print("0. Salir")
         
         opcion = input("\n ✶ Elegí una opción: ").strip()
@@ -172,60 +333,16 @@ def menuPrincipal(pisos):
             submenuInformacion()            # vamos al submenú de info de pisos
         elif opcion == "2":                 # si elige consultar
             submenuConsultas(pisos)         # vamos al submenú de consultas
-        elif opcion == "3":   # Reservar
-            # Mostramos al usuario la lista de pisos disponibles
-            print("\nPisos disponibles:")
-            
-            # Usamos un bucle for para recorrer la lista de pisos y mostrarlos con un número
-            for i in range(len(pisos)):
-                # Mostramos el número de piso (i+1 porque los índices arrancan en 0) y el nombre del piso
-                print(f"{i + 1}. {pisos[i]['nombre']}")
-            
-            # Le pedimos al usuario que ingrese el número del piso en el que quiere reservar
-            # Restamos 1 para convertirlo al índice correcto de la lista (porque el usuario empieza a contar desde 1)
-            piso = int(input("\n ✶ Ingresá el número del piso: ")) - 1
-            
-            # Pedimos al usuario el tipo de lugar (ej: "lugar grupal", "lugar individual", etc.)
-            # .strip() elimina espacios extras y .lower() pasa el texto a minúsculas para evitar errores
-            tipo = input(" ✶ Ingresá el tipo de lugar (ej: lugar grupal, lugar individual, lugar silencio, etc.): ").strip().lower()
-            
-            # Pedimos al usuario el número de lugar específico dentro del piso
-            lugar = int(input(" ✶ Ingresá el número del lugar: "))
-            
-            # Llamamos a la función reservarLugar() pasando:
-            # - la lista de pisos completa
-            # - el piso elegido (como índice)
-            # - el tipo de lugar
-            # - y el número del lugar
-            reservarLugar(pisos, piso, tipo, lugar)
-
-
+        elif opcion == "3":
+            reservarLugar(pisos)
         elif opcion == "4":   # Liberar
-            # Mostramos al usuario la lista de pisos disponibles
-            print("\nPisos disponibles:")
-            
-            # Usamos un bucle for para recorrer la lista de pisos y mostrarlos con un número
-            for i in range(len(pisos)):
-                # Mostramos el número de piso (i+1 porque los índices arrancan en 0) y el nombre del piso
-                print(f"{i + 1}. {pisos[i]['nombre']}")
-            
-            # Le pedimos al usuario que ingrese el número del piso en el que quiere liberar un lugar
-            # Restamos 1 para convertirlo al índice correcto de la lista
-            piso = int(input("\n ✶ Ingresá el número del piso: ")) - 1
-            
-            # Pedimos al usuario el tipo de lugar (ej: "lugar grupal", "lugar individual", etc.)
-            # Usamos .strip() y .lower() para evitar errores de espacios o mayúsculas
-            tipo = input(" ✶ Ingresá el tipo de lugar (ej: lugar grupal, lugar individual, lugar silencio, etc.): ").strip().lower()
-            
-            # Pedimos al usuario el número de lugar específico dentro del piso
-            lugar = int(input(" ✶ Ingresá el número del lugar: "))
-            
-            # Llamamos a la función liberarLugar() pasando:
-            # - la lista de pisos completa
-            # - el piso elegido (como índice)
-            # - el tipo de lugar
-            # - y el número del lugar
-            liberarLugar(pisos, piso, tipo, lugar)
+            liberarLugar(pisos)
+        elif opcion=="5":
+            verUsuariosActivos(pisos)
+        elif opcion=="6":
+            mostrarPorcentajes(pisos)
+        elif opcion=="7":
+            filtrarPorAtributoSimple(pisos)
 
         elif opcion == "0":                 # si elige salir
             print("\nGracias por usar nuestra app")
