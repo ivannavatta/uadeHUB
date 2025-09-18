@@ -192,6 +192,17 @@ def reservarLugar(pisos):
         print(f"¡Lugar {lugar_num} en {piso['nombre']} reservado por {usuario}!")
     else:
         print("Reserva cancelada.")
+    while True:
+        opcion = input("\n¿Querés realizar otra acción? (s/n): ").strip().lower()
+        if opcion == "s":
+            return True
+        elif opcion == "n":
+            print("\nGracias por confiar en nuestro sistema. Hasta pronto!")
+            print("\nSaliendo...")
+            return False
+        else:
+            print("Opción inválida, ingresá 's' o 'n'.")
+
 
 
 
@@ -240,6 +251,16 @@ def liberarLugar(pisos):
         print(f"¡Lugar {lugar_num} en {piso['nombre']} liberado con éxito!")
     else:
         print("Liberación cancelada.")
+    while True:
+        opcion = input("\n¿Querés realizar otra acción? (s/n): ").strip().lower()
+        if opcion == "s":
+            return True
+        elif opcion == "n":
+            print("\nGracias por confiar en nuestro sistema. Hasta pronto!")
+            print("\nSaliendo...")
+            return False
+        else:
+            print("Opción inválida, ingresá 's' o 'n'.")
 
 
 def verUsuariosActivos(pisos):
@@ -297,37 +318,60 @@ def mostrarPorcentajes(pisos):
 def filtrarPorAtributoSimple(pisos):
     atributos = ["enchufe", "pizarron"]
 
-    print("Atributos disponibles:")
+    print("\nAtributos disponibles:")
     i = 1
     for atributo in atributos:
-        print(i, atributo)
+        print(f'    {i}. {atributo}')
         i += 1
-    print(0, "Mostrar todos")
+    print(f'    {0}. Mostrar todos')
 
-    opcion = input("Elegí un atributo por número: ").strip()
+    opcion = input("\nElegí un atributo por número: ").strip()
     atributo_seleccionado = ""
     if opcion == "1":
         atributo_seleccionado = "enchufe"
     elif opcion == "2":
         atributo_seleccionado = "pizarron"
 
-    lugares_filtrados = []
+    # Diccionario para agrupar resultados
+    resultados = {}
+    
     for piso in pisos:
         nombre_piso = piso["nombre"]
         for clave in piso:
             if clave not in ["nombre", "tipo", "descripcion"]:
-                numero_lugar = 1 
+                lugares_disponibles = []
+                contador = 1
                 for lugar in piso[clave]:
                     if lugar["estado"] == 0 and (atributo_seleccionado == "" or lugar.get(atributo_seleccionado, False)):
-                        lugares_filtrados.append((nombre_piso, clave, numero_lugar))
-                    numero_lugar += 1
+                        lugares_disponibles.append(contador)
+                    contador +=1
+                    if len(lugares_disponibles) > 0:
+                        if nombre_piso not in resultados:
+                            resultados[nombre_piso] = {}
+                        resultados[nombre_piso][clave] = lugares_disponibles
 
-    if lugares_filtrados:
-        print("\nLugares libres filtrados:")
-        for lugar in lugares_filtrados:
-            print("Piso:", lugar[0], "| Tipo:", lugar[1], "| Lugar:", lugar[2])
+    # Mostrar resultados agrupados
+    if len(resultados) > 0:
+        if atributo_seleccionado != "":
+            print("\nLugares con " + atributo_seleccionado + " disponibles en:")
+        else:
+            print("\nTodos los lugares libres disponibles en:")
+
+        for piso in resultados:
+            print("-------------------------------------------------------------------")
+            print("Piso: " + piso)
+            for tipo in resultados[piso]:
+                print("  Tipo: " + tipo)
+                print("    Lugares: ", end="")
+                for lugar in resultados[piso][tipo]:
+                    print(str(lugar), end="  ")
+                print()
+        print("-------------------------------------------------------------------")
+
     else:
-        print("No se encontraron lugares libres con ese atributo.")
+        print("\nNo se encontraron lugares libres con ese atributo.")
+
+    input("\nPresione enter para volver al menú principal...")
 
 
 """ ---------MENÚ PRINCIPAL--------- """
@@ -359,9 +403,13 @@ def menuPrincipal(pisos):
         elif opcion == "2":                 # si elige consultar
             submenuConsultas(pisos)         # vamos al submenú de consultas
         elif opcion == "3":
-            reservarLugar(pisos)
-        elif opcion == "4":   # Liberar
-            liberarLugar(pisos)
+            seguir = True
+            while seguir:
+                seguir= reservarLugar(pisos)
+        elif opcion == "4":
+            seguir = True
+            while seguir:
+                seguir = liberarLugar(pisos)
         elif opcion=="5":
             verUsuariosActivos(pisos)
         elif opcion=="6":
@@ -383,40 +431,36 @@ def menuPrincipal(pisos):
 def submenuInformacion():
     while True:
         print("\n      Información de los espacios de estudio      ")
-        print("1. Espacio Panorámico")
-        print("2. Espacio Silencioso")
-        print("3. Espacio Tech")
-        print("0. Volver al menú principal")
         
+        # Mostramos dinámicamente todos los pisos
+        for i in range(len(pisos)):
+            print(f"{i + 1} {pisos[i]['nombre']}")              # i+1 para que arranque en 1
+        
+        print("0. Volver al menú principal")
+
         opcion = input("\n ✶ Sobre qué piso querés conocer: ").strip()
         
-        if opcion == "1":
+        if opcion.isdigit() and 1 <= int(opcion) <= len(pisos):
+            piso = pisos[int(opcion) - 1]   # -1 porque la lista empieza en 0
             print("\n-------------------------------------------------------------------")
-            print("\nEspacio Panorámico (Piso 10)\n\nEl lugar más grande de UADE, con mesas y sillones cómodos, enchufes y pizarras con fibrones para organizar ideas. Si buscás un espacio amplio y flexible, este piso es una gran opción para estudiar solo o en grupo.")
+            print(f"\n{piso['nombre']}\n\n{piso['descripcion']}")
             print("\n-------------------------------------------------------------------")
-        elif opcion == "2":                 
-            print("\n-------------------------------------------------------------------")
-            print("\nEspacio Silencioso (Chile 2)\n\nUn ambiente más reducido y dividido en dos sectores: uno de silencio total y otro donde se puede conversar bajito. Ideal si querés concentrarte o si preferís un lugar más tranquilo con pocos compañeros.")
-            print("\n-------------------------------------------------------------------")
-        elif opcion == "3":                 
-            print("\n-------------------------------------------------------------------")
-            print("\nEspacio Tech (UADE Labs)\n\nUn espacio más chico, pero con la ventaja de reservar computadoras y usar los salones equipados. Perfecto si necesitás trabajar con software específico o armar algo práctico en equipo.")
-            print("\n-------------------------------------------------------------------")
-        elif opcion == "0":                 # si elige volver
+        
+        elif opcion == "0":                     # volver al menú principal
             print("\nVolviendo al menú principal...")
             break
-        else:                               # si pone cualquier otra cosa
+        else:                               
             print("Opción inválida, ingresá de nuevo.")
             continue
-        
+
         # Pregunta si quiere conocer otro piso
         while True:
             otra = input("\n¿Querés conocer otro espacio? (s/n): ").strip().lower()
-            if otra == "s":                     # vuelve al inicio del submenu
-                break                           # rompe el bucle de validación y repite el submenu
-            elif otra == "n":                   # sale al menú principal
+            if otra == "s":
+                break
+            elif otra == "n":
                 print("\nVolviendo al menú principal...")
-                return                         # rompe toda la función
+                return
             else:
                 print("Opción inválida, ingresá 's' o 'n'.")
 
@@ -489,5 +533,4 @@ def submenuConsultas(pisos):
             print("Opción inválida, ingresá de nuevo.")
 
 
-# Punto de entrada del programa -> ejecuta el menú principal
 menuPrincipal(pisos)
