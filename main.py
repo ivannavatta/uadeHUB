@@ -185,9 +185,14 @@ def reservarLugar(pisos):
 
     # Reservar
     usuario = input("✶ Ingresá tu nombre: ").strip()
-    lugares[lugar_num-1]["estado"] = 1
-    lugares[lugar_num-1]["usuario"] = usuario
-    print(f"¡Lugar {lugar_num} en {piso['nombre']} reservado por {usuario}!")
+    confirm = input(f"¿Seguro que querés reservar el lugar {lugar_num} en {piso['nombre']}? (s/n): ").strip().lower()
+    if confirm == "s":
+        lugares[lugar_num-1]["estado"] = 1
+        lugares[lugar_num-1]["usuario"] = usuario
+        print(f"¡Lugar {lugar_num} en {piso['nombre']} reservado por {usuario}!")
+    else:
+        print("Reserva cancelada.")
+
 
 
 
@@ -228,9 +233,13 @@ def liberarLugar(pisos):
     if lugar_num not in ocupados: return
 
     # Liberar
-    lugares[lugar_num-1]["estado"] = 0
-    lugares[lugar_num-1]["usuario"] = None
-    print(f"¡Lugar {lugar_num} en {piso['nombre']} liberado con éxito!")
+    confirm = input(f"¿Seguro que quieres liberar el lugar {lugar_num} en {piso['nombre']}? (s/n): ").strip().lower()
+    if confirm == "s":
+        lugares[lugar_num-1]["estado"] = 0
+        lugares[lugar_num-1]["usuario"] = None
+        print(f"¡Lugar {lugar_num} en {piso['nombre']} liberado con éxito!")
+    else:
+        print("Liberación cancelada.")
 
 
 def verUsuariosActivos(pisos):
