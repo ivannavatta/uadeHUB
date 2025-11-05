@@ -1,3 +1,5 @@
+import re
+
 # Representación de los pisos con una lista de diccionarios para tener la info de cada piso ya que es distinto uno de otro
 
 # Cada número representa el estado del lugar:
@@ -71,14 +73,9 @@ estados = {0: "libre", 1:"ocupado"}
 # 1) Función que muestra la disponibilidad total en todos los pisos
 def consultaTotal(pisos):
     for piso in pisos:
-        total_libres = 0
-        for clave in piso:
-            if clave not in ["nombre", "tipo", "descripcion"]:
-                lugares = piso[clave]
-                for lugar in lugares:
-                    if lugar["estado"] == 0:
-                        total_libres += 1
-        print(f"En {piso['nombre']}: hay {total_libres} lugares disponibles")
+        total_libres = sum(map(lambda l: 1 if l["estado"] == 0 else 0,
+                            [lugar for clave in piso if clave not in ["nombre", "tipo", "descripcion"] for lugar in piso[clave]]))
+        print(f"En {piso['nombre']}: hay {total_libres} lugares disponibles.")
 
 
 
@@ -155,8 +152,11 @@ def reservarLugar(pisos):
     for piso_dict in pisos:
         print(i, piso_dict['nombre'])
         i += 1
-    piso_num = int(input("\n✶ Elegí el número del piso: ")) - 1
-    if piso_num < 0 or piso_num >= len(pisos): return
+        
+    piso_num = input("\n✶ Elegí el número del piso: ").strip()
+    while not re.match(r"^\d+$", piso_num) or int(piso_num) < 1 or int(piso_num) > len(pisos):
+        piso_num = input("Ingresá un número válido: ").strip()
+    piso_num = int(piso_num) - 1
     piso = pisos[piso_num]
 
     # Elegir tipo de lugar
@@ -166,9 +166,11 @@ def reservarLugar(pisos):
     for t in tipos:
         print(i, t)
         i += 1
-    tipo_num = int(input("\n✶ Elegí el tipo de lugar por número: ")) - 1
-    if tipo_num < 0 or tipo_num >= len(tipos): return
-    tipo = tipos[tipo_num]
+        
+    tipo_num = input("\n✶ Elegí el tipo de lugar por número: ").strip()
+    while not re.match(r"^\d+$", tipo_num) or int(tipo_num) < 1 or int(tipo_num) > len(tipos):
+        tipo_num = input("Ingresá un número válido: ").strip()
+    tipo = tipos[int(tipo_num) - 1]
     lugares = piso[tipo]
 
     # Elegir lugar libre
@@ -177,35 +179,46 @@ def reservarLugar(pisos):
     for lugar in lugares:
         if lugar["estado"] == 0: libres.append(j)
         j += 1
+        
     if not libres: 
         print("No hay lugares libres"); return
+        
     print("\nLugares libres disponibles:", libres)
-    lugar_num = int(input("\n✶ Elegí el número de lugar: "))
-    if lugar_num not in libres: return
+    
+    lugar_num = input("\n✶ Elegí el número de lugar: ").strip()
+    while not re.match(r"^\d+$", lugar_num) or int(lugar_num) not in libres:
+        lugar_num = input("\nIngresá un número válido entre los disponibles: ").strip()
+    lugar_num = int(lugar_num)
 
-    # Reservar
-    usuario = input("✶ Ingresá tu nombre: ").strip()
-    confirm = input(f"¿Seguro que querés reservar el lugar {lugar_num} en {piso['nombre']}? (s/n): ").strip().lower()
-    if confirm == "s":
+    # Pedirle al usuario nombre y legajo
+    usuario = input("\n✶ Ingresá tu nombre: ").strip()
+    while not re.match(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", usuario):
+        usuario = input("Solo letras y espacios, por favor: ").strip()
+
+    legajo = input("\n✶ Ingresá tu número de legajo: ").strip()
+    while not re.match(r"^\d{7}$", legajo):   # exactamente 7 dígitos
+        legajo = input("\nEl legajo debe tener 7 dígitos. Volvé a ingresarlo: ").strip()
+
+    confirm = input(f"\n¿Querés reservar el lugar {lugar_num} en {piso['nombre']}? (s/n): ").strip().lower()
+    while not re.match(r"^(s(i)?|n(o)?)$", confirm):
+        confirm = input("\nEscribí 's' o 'n': ").strip().lower()
+
+    if confirm.startswith("s"):
         lugares[lugar_num-1]["estado"] = 1
-        lugares[lugar_num-1]["usuario"] = usuario
-        print(f"¡Lugar {lugar_num} en {piso['nombre']} reservado por {usuario}!")
+        lugares[lugar_num-1]["usuario"] = f"{usuario} (Legajo {legajo})"
+        print(f"\n¡Listo {usuario}! Reservaste el lugar {lugar_num} en {piso['nombre']}.\n")
     else:
-        print("Reserva cancelada.")
+        print("\nReserva cancelada.")
+
     while True:
         opcion = input("\n¿Querés realizar otra acción? (s/n): ").strip().lower()
         if opcion == "s":
             return True
         elif opcion == "n":
-            print("\nGracias por confiar en nuestro sistema. Hasta pronto!")
-            print("\nSaliendo...")
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!")
             return False
         else:
-            print("Opción inválida, ingresá 's' o 'n'.")
-
-
-
-
+            print("\nOpción inválida, ingresá 's' o 'n'.")
 
 # 5) Función para liberar un lugar
 def liberarLugar(pisos):
@@ -339,16 +352,17 @@ def filtrarPorAtributoSimple(pisos):
         nombre_piso = piso["nombre"]
         for clave in piso:
             if clave not in ["nombre", "tipo", "descripcion"]:
-                lugares_disponibles = []
-                contador = 1
-                for lugar in piso[clave]:
-                    if lugar["estado"] == 0 and (atributo_seleccionado == "" or lugar.get(atributo_seleccionado, False)):
-                        lugares_disponibles.append(contador)
-                    contador +=1
-                    if len(lugares_disponibles) > 0:
-                        if nombre_piso not in resultados:
-                            resultados[nombre_piso] = {}
-                        resultados[nombre_piso][clave] = lugares_disponibles
+                lugares = piso[clave]
+                disponibles = list(filter(lambda l: l["estado"] == 0 and (atributo_seleccionado == "" or l.get(atributo_seleccionado, False)), lugares))
+                
+                indices = []
+                j = 0
+                while j < len(lugares):
+                    if lugares[j] in disponibles:
+                        indices.append(j + 1)
+                    j += 1
+
+                resultados[nombre_piso][clave] = indices
 
     # Mostrar resultados agrupados
     if len(resultados) > 0:
@@ -387,13 +401,13 @@ def menuPrincipal(pisos):
         print("-------------------------------------------------------------------")
         
         print("\n       Menú Principal      ")
-        print("1. Informacion sobre los espacios")
-        print("2. Consultar disponibilidad")
-        print("3. Reservar")
-        print("4. Liberar")
-        print("5. Ver usuarios activos")
-        print("6. Ver porcentjaes")
-        print("7. Filtrar por atributo")
+        print("1. Informacion sobre los espacios de estudio")
+        print("2. Consultar disponibilidad de los pisos")
+        print("3. Reservar un lugar para estudiar")
+        print("4. Liberar un lugar que ya usaste")
+        print("5. Ver quiénes están estudiando ahora")
+        print("6. Ver porcentjaes de ocupación de los pisos")
+        print("7. Filtrar por enchufes o pizarras")
         print("0. Salir")
         
         opcion = input("\n ✶ Elegí una opción: ").strip()
