@@ -4,6 +4,8 @@ from functools import reduce
 ARCHIVO_GLOBAL = "reservas_globales.txt"
 FECHAS_DISPONIBLES = ["14-11", "15-11", "17-11", "18-11", "19-11"]
 
+#FUNCIONES DE CARGA
+
 
 def login():
     print("=== Inicio de sesión en UADE Desk Finder ===")
@@ -79,7 +81,7 @@ def cargar_pisos():
     try:
         with open("pisos.txt", "r", encoding="utf-8") as f:
             lineas = [l.strip() for l in f if l.strip()]
-    except FileNotFoundError:
+    except IOError:
         print("No se encontró el archivo pisos.txt. Creá uno con la estructura adecuada.")
         return pisos
 
@@ -119,6 +121,9 @@ def cargar_pisos():
     return pisos
 
 
+#FUNCIONES DE USUARIO
+
+
 
 def ver_mis_reservas(usuario):
     if not usuario["reservas"]:
@@ -135,9 +140,13 @@ def reservarLugarPrivado(pisos, usuario):
     for i, piso_dict in enumerate(pisos, start=1):
         print(i, piso_dict['nombre'])
 
-    piso_num = input("\n✶ Elegí el número del piso: ").strip()
+    piso_num = input("\n✶ Elegí el número del piso (0 para volver): ").strip()
+    if piso_num == "0":
+        return
     while not piso_num.isdigit() or int(piso_num) < 1 or int(piso_num) > len(pisos):
-        piso_num = input("Número inválido, ingresá nuevamente: ").strip()
+        piso_num = input("Número inválido, ingresá nuevamente (0 para volver): ").strip()
+        if piso_num == "0":
+            return
     piso = pisos[int(piso_num) - 1]
 
     tipos = [t for t in piso if t not in ["nombre", "tipo", "descripcion"]]
@@ -145,9 +154,13 @@ def reservarLugarPrivado(pisos, usuario):
     for i, t in enumerate(tipos, start=1):
         print(i, t)
 
-    tipo_num = input("\n✶ Elegí el tipo de lugar: ").strip()
+    tipo_num = input("\n✶ Elegí el tipo de lugar (0 para volver): ").strip()
+    if tipo_num == "0":
+        return
     while not tipo_num.isdigit() or int(tipo_num) < 1 or int(tipo_num) > len(tipos):
-        tipo_num = input("Número inválido, ingresá nuevamente: ").strip()
+        tipo_num = input("Número inválido, ingresá nuevamente (0 para volver): ").strip()
+        if tipo_num == "0":
+            return
     tipo = tipos[int(tipo_num) - 1]
     lugares = piso[tipo]
 
@@ -155,9 +168,13 @@ def reservarLugarPrivado(pisos, usuario):
     for i, fecha in enumerate(fechas_disponibles, start=1):
         print(f"{i}. {fecha}")
 
-    fecha_num = input("\n✶ Elegí una fecha: ").strip()
+    fecha_num = input("\n✶ Elegí una fecha (0 para volver): ").strip()
+    if fecha_num == "0":
+        return
     while not fecha_num.isdigit() or int(fecha_num) < 1 or int(fecha_num) > len(fechas_disponibles):
-        fecha_num = input("Número inválido. Ingresá nuevamente: ").strip()
+        fecha_num = input("Número inválido. Ingresá nuevamente (0 para volver): ").strip()
+        if fecha_num == "0":
+            return
     fecha = fechas_disponibles[int(fecha_num) - 1]
 
     reservas_globales = cargar_reservas_globales()
@@ -165,7 +182,6 @@ def reservarLugarPrivado(pisos, usuario):
     print(f"\n=== Lugares disponibles en {piso['nombre']} ({tipo}) para el {fecha} ===")
     libres = []
     for i, l in enumerate(lugares, start=1):
-        # Verificar si este lugar está reservado para esa fecha
         reservado = any(
             r["piso"] == piso["nombre"] and
             r["tipo"] == tipo and
@@ -192,9 +208,13 @@ def reservarLugarPrivado(pisos, usuario):
         print("\nNo hay lugares libres para esa fecha.")
         return
 
-    lugar_num = input("\n✶ Elegí el número del lugar que querés reservar: ").strip()
+    lugar_num = input("\n✶ Elegí el número del lugar que querés reservar (0 para volver): ").strip()
+    if lugar_num == "0":
+        return
     while not lugar_num.isdigit() or int(lugar_num) not in libres:
-        lugar_num = input("Número inválido o lugar ocupado. Probá de nuevo: ").strip()
+        lugar_num = input("Número inválido o lugar ocupado. Probá de nuevo (0 para volver): ").strip()
+        if lugar_num == "0":
+            return
     lugar_num = int(lugar_num)
 
     texto_reserva = f"{piso['nombre']} | {tipo} | Lugar {lugar_num} | Fecha {fecha}"
@@ -244,16 +264,22 @@ def liberarLugarPrivado(pisos, usuario):
     ver_mis_reservas(usuario)
     if not usuario["reservas"]:
         return
-    num = input("\n✶ Ingresá el número de la reserva a liberar: ").strip()
+    num = input("\n✶ Ingresá el número de la reserva a liberar (0 para volver): ").strip()
+    if num == "0":
+        return
     while not num.isdigit() or int(num) < 1 or int(num) > len(usuario["reservas"]):
-        num = input("Número inválido, intentá de nuevo: ").strip()
+        num = input("Número inválido, intentá de nuevo (0 para volver): ").strip()
+        if num == "0":
+            return
     num = int(num)
     reserva = usuario["reservas"].pop(num - 1)
     guardar_reservas(usuario)
 
     partes = [p.strip() for p in reserva.split("|")]
-    piso_nombre, tipo, lugar_txt, fecha = partes
-    lugar_num = int(''.join([c for c in lugar_txt if c.isdigit()]))
+    piso_nombre = partes[0]
+    tipo = partes[1]
+    lugar_num = int(''.join([c for c in partes[2] if c.isdigit()]))
+    fecha = partes[3].replace("Fecha ", "")
 
     for piso in pisos:
         if piso["nombre"] == piso_nombre:
@@ -262,79 +288,176 @@ def liberarLugarPrivado(pisos, usuario):
                 r for r in lugar_lista[lugar_num - 1]["reservas"]
                 if not (r["usuario"] == usuario["nombre"] and r["fecha"] == fecha)
             ]
+
     guardar_reservas_global(pisos)
     print(f"\nReserva liberada: {reserva}\n")
+    while True:
+        opcion = input("¿Querés liberar otra reserva? (s/n): ").strip().lower()
+        if opcion == "s":
+            liberarLugarPrivado(pisos, usuario)
+            break
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 
 
-def consultaTotal(pisos):
+def consultaTotal():
+    fechas_disponibles = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+    pisos = cargar_pisos()
+    print("\n=== Consulta total de lugares libres ===")
+    print("Fechas disponibles:")
+    for i, f in enumerate(fechas_disponibles, start=1):
+        print(f"{i}. {f}")
+
+    seleccion = input("\nElegí una fecha: ").strip()
+    while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(fechas_disponibles):
+        seleccion = input("Número inválido, probá nuevamente: ")
+
+    fecha = fechas_disponibles[int(seleccion) - 1]
+
+    print(f"\n=== Lugares libres para el {fecha} ===")
+
     for piso in pisos:
-        total_libres = sum(map(lambda l: 1 if l["estado"] == 0 else 0,
-                            [lugar for clave in piso if clave not in ["nombre", "tipo", "descripcion"] for lugar in piso[clave]]))
-        print(f"En {piso['nombre']}: hay {total_libres} lugares disponibles.")
 
-def consultarDisponibilidad(pisos, piso_num):
-    if piso_num < 0 or piso_num >= len(pisos):
-        print("El número de piso ingresado no es válido.")
-        return
-    piso = pisos[piso_num]
-    print(f"\n{piso['nombre']}")
+        total_libres = sum(
+            map(
+                lambda l: 1 if fecha not in [r["fecha"] for r in l["reservas"]] else 0,
+                (
+                    lugar
+                    for clave in piso
+                    if clave not in ["nombre", "tipo", "descripcion"]
+                    for lugar in piso[clave]
+                )
+            )
+        )
+
+        print(f"{piso['nombre']}: {total_libres} libres")
+
+def consultarDisponibilidad(pisos):
+    fechas_disponibles = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+
+    print("\nPisos disponibles:")
+    for i, piso_dict in enumerate(pisos, start=1):
+        print(f"{i}. {piso_dict['nombre']}")
+
+    seleccion_piso = input("\nElegí un piso: ").strip()
+    while not seleccion_piso.isdigit() or int(seleccion_piso) < 1 or int(seleccion_piso) > len(pisos):
+        seleccion_piso = input("Número inválido. Probá de nuevo: ").strip()
+
+    piso = pisos[int(seleccion_piso) - 1]
+
+    print("\nFechas disponibles:")
+    for i, f in enumerate(fechas_disponibles, start=1):
+        print(f"{i}. {f}")
+
+    seleccion_fecha = input("\nElegí una fecha: ").strip()
+    while not seleccion_fecha.isdigit() or int(seleccion_fecha) < 1 or int(seleccion_fecha) > len(fechas_disponibles):
+        seleccion_fecha = input("Número inválido. Probá nuevamente: ").strip()
+
+    fecha = fechas_disponibles[int(seleccion_fecha) - 1]
+
+    print(f"\n=== Disponibilidad en {piso['nombre']} para el {fecha} ===")
+
+    reservas_globales = cargar_reservas_globales()
+
     for clave in piso:
         if clave not in ["nombre", "tipo", "descripcion"]:
             print(f"\nTipo: {clave}")
             lugares = piso[clave]
-            for i in range(len(lugares)):
-                estado = "libre" if lugares[i]["estado"] == 0 else "ocupado"
-                print(f"Lugar {i + 1}: {estado}")
+            for i, l in enumerate(lugares, start=1):
+                reservado = any(
+                    r["piso"] == piso["nombre"]
+                    and r["tipo"] == clave
+                    and r["lugar"] == i
+                    and r["fecha"] == fecha
+                    for r in reservas_globales
+                )
+                estado = "❌ Ocupado" if reservado else "✅ Libre"
+                atributos = []
+                if l.get("enchufe"):
+                    atributos.append("Enchufe")
+                if l.get("pizarron"):
+                    atributos.append("Pizarrón")
+                attr_txt = f" ({', '.join(atributos)})" if atributos else ""
+                print(f"  Lugar {i}: {estado}{attr_txt}")
+
+
 
 def verLugaresLibres(pisos):
+    fechas_disponibles = FECHAS_DISPONIBLES
+
+    print("\nFechas disponibles:")
+    for i, f in enumerate(fechas_disponibles, start=1):
+        print(f"{i}. {f}")
+
+    seleccion = input("\nElegí una fecha: ").strip()
+    while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(fechas_disponibles):
+        seleccion = input("Número inválido, probá nuevamente: ").strip()
+
+    fecha = fechas_disponibles[int(seleccion) - 1]
+    reservas_globales = cargar_reservas_globales()
+
+    print(f"\n=== Lugares libres para el {fecha} ===")
     for piso in pisos:
         print(f"\n{piso['nombre']}")
-        matriz = []
-        tipos = [clave for clave in piso if clave not in ["nombre", "tipo", "descripcion"]]
+        tipos = [k for k in piso if k not in ["nombre", "tipo", "descripcion"]]
+
         for tipo in tipos:
-            fila = []
-            i = 0
-            while i < len(piso[tipo]):
-                if piso[tipo][i]["estado"] == 0:
-                    fila.append("Libre")
-                else:
-                    fila.append("Ocupado")
-                i += 1
-            matriz.append(fila)
-        t = 0
-        while t < len(tipos):
-            print(f"\nTipo: {tipos[t]}")
-            fila = matriz[t]
+            print(f"\nTipo: {tipo}")
+            lugares = piso[tipo]
             libres = []
-            j = 0
-            while j < len(fila):
-                if fila[j] == "Libre":
-                    libres.append(str(j+1))
-                j += 1
+
+            for i, l in enumerate(lugares, start=1):
+                reservado = False
+                for r in reservas_globales:
+                    if r["piso"] == piso["nombre"] and r["tipo"] == tipo and r["lugar"] == i and r["fecha"] == fecha:
+                        reservado = True
+                        break
+                if not reservado:
+                    libres.append(str(i))
+
             if libres:
-                k = 0
-                while k < len(libres):
-                    print("  ".join(libres[k:k+5]))
-                    k += 5
+                for inicio in range(0, len(libres), 5):
+                    print("  ".join(libres[inicio:inicio+5]))
             else:
                 print("No hay lugares libres en este tipo")
-            t += 1
-
 def mostrarPorcentajes(pisos):
+    fechas_disponibles = FECHAS_DISPONIBLES
+    print("\nFechas disponibles:")
+    for i, f in enumerate(fechas_disponibles, start=1):
+        print(f"{i}. {f}")
+    seleccion = input("\nElegí una fecha: ").strip()
+    while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(fechas_disponibles):
+        seleccion = input("Número inválido, probá nuevamente: ").strip()
+    fecha = fechas_disponibles[int(seleccion) - 1]
+    reservas = cargar_reservas_globales()
     ocupaciones = {}
+
     for piso in pisos:
-        todas_las_listas = [piso[clave] for clave in piso if clave not in ["nombre", "tipo", "descripcion"]]
         total_lugares = 0
         ocupados = 0
-        for lugares in todas_las_listas:
-            for lugar in lugares:
-                total_lugares += 1
-                if lugar["estado"] == 1:
-                    ocupados += 1
-        porcentaje = (ocupados / total_lugares) * 100 if total_lugares > 0 else 0
+
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                lista = piso[clave]
+                for i, _ in enumerate(lista, start=1):
+                    total_lugares += 1
+                    reservado = False
+
+                    for r in reservas:
+                        if r["piso"] == piso["nombre"] and r["tipo"] == clave and r["lugar"] == i and r["fecha"] == fecha:
+                            reservado = True
+                            break
+
+                    if reservado:
+                        ocupados += 1
+        porcentaje = (ocupados / total_lugares * 100) if total_lugares > 0 else 0
         ocupaciones[piso["nombre"]] = porcentaje
         print(f"{piso['nombre']}: {porcentaje:.2f}% ocupación")
+
     if ocupaciones:
         max_ocupacion = -1
         piso_mas_ocupado = ""
@@ -342,24 +465,53 @@ def mostrarPorcentajes(pisos):
             if porcentaje > max_ocupacion:
                 max_ocupacion = porcentaje
                 piso_mas_ocupado = nombre
+
         print(f"\nPiso más ocupado: {piso_mas_ocupado} ({max_ocupacion:.2f}% ocupación)")
+
 
 def estadisticasGlobales(pisos):
     print("\n=== Estadísticas globales de UADE Desk Finder ===")
-    todos_los_lugares = [
-        lugar
+    print("Fechas disponibles:")
+    for i, f in enumerate(FECHAS_DISPONIBLES, start=1):
+        print(f"{i}. {f}")
+
+    sel = input("\nElegí una fecha: ").strip()
+    while not sel.isdigit() or int(sel) < 1 or int(sel) > len(FECHAS_DISPONIBLES):
+        sel = input("Número inválido, probá nuevamente: ").strip()
+
+    fecha = FECHAS_DISPONIBLES[int(sel) - 1]
+    reservas = cargar_reservas_globales()
+
+    todos = [
+        (piso["nombre"], tipo, i + 1)
         for piso in pisos
-        for clave in piso
-        if clave not in ["nombre", "tipo", "descripcion"]
-        for lugar in piso[clave]
+        for tipo in piso
+        if tipo not in ["nombre", "tipo", "descripcion"]
+        for i in range(len(piso[tipo]))
     ]
-    total_lugares = len(todos_los_lugares)
-    ocupados = reduce(lambda acc, l: acc + (1 if l["estado"] == 1 else 0), todos_los_lugares, 0)
-    libres = total_lugares - ocupados
-    print(f"Total de lugares: {total_lugares}")
-    print(f"Lugares ocupados: {ocupados}")
-    print(f"Lugares libres:   {libres}")
-    print(f"Porcentaje de ocupación total: {(ocupados / total_lugares * 100):.2f}%")
+
+    total = len(todos)
+
+    ocupados = reduce(
+        lambda acc, t: acc + sum(
+            1
+            for r in reservas
+            if r["piso"] == t[0] and r["tipo"] == t[1] and r["lugar"] == t[2] and r["fecha"] == fecha
+        ),
+        todos,
+        0
+    )
+
+    libres = total - ocupados
+    porc = (ocupados * 100) / total if total != 0 else 0
+
+    print("\n=== Resultados globales ===")
+    print("Total de lugares:", total)
+    print("Lugares ocupados:", ocupados)
+    print("Lugares libres:  ", libres)
+    print(f"Porcentaje de ocupación total: {porc:.2f}%\n")
+
+
 
 def filtrarPorAtributoSimple(pisos):
     atributos = ("enchufe", "pizarron")
@@ -369,32 +521,65 @@ def filtrarPorAtributoSimple(pisos):
         print(f'    {i}. {atributo}')
         i += 1
     print(f'    {0}. Mostrar todos')
+
     opcion = input("\nElegí un atributo por número: ").strip()
     atributo_seleccionado = ""
     if opcion == "1":
         atributo_seleccionado = "enchufe"
     elif opcion == "2":
         atributo_seleccionado = "pizarron"
+
+    fechas_disponibles = FECHAS_DISPONIBLES
+    print("\nFechas disponibles:")
+    for i, f in enumerate(fechas_disponibles, start=1):
+        print(f"{i}. {f}")
+
+    seleccion = input("\nElegí una fecha: ").strip()
+    while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(fechas_disponibles):
+        seleccion = input("Número inválido, probá nuevamente: ").strip()
+
+    fecha = fechas_disponibles[int(seleccion) - 1]
+    reservas = cargar_reservas_globales()
+
     resultados = {}
     for piso in pisos:
         nombre_piso = piso["nombre"]
         resultados[nombre_piso] = {}
+
         for clave in piso:
             if clave not in ["nombre", "tipo", "descripcion"]:
                 lugares = piso[clave]
-                disponibles = list(filter(lambda l: l["estado"] == 0 and (atributo_seleccionado == "" or l.get(atributo_seleccionado, False)), lugares))
-                indices = []
+
+                libres = []
                 j = 0
                 while j < len(lugares):
-                    if lugares[j] in disponibles:
-                        indices.append(j + 1)
+                    lugar = lugares[j]
+                    ocupado = False
+                    for r in reservas:
+                        if r["piso"] == nombre_piso and r["tipo"] == clave and r["lugar"] == j + 1 and r["fecha"] == fecha:
+                            ocupado = True
+                            break
+                    if not ocupado:
+                        if atributo_seleccionado == "" or lugar.get(atributo_seleccionado) == "True":
+                            libres.append(j + 1)
                     j += 1
-                resultados[nombre_piso][clave] = indices
-    if len(resultados) > 0:
+
+                resultados[nombre_piso][clave] = libres
+
+    hay_algo = False
+    for piso in resultados:
+        for tipo in resultados[piso]:
+            if len(resultados[piso][tipo]) > 0:
+                hay_algo = True
+                break
+
+    if hay_algo:
         if atributo_seleccionado != "":
             print("\nLugares con " + atributo_seleccionado + " disponibles en:")
         else:
             print("\nTodos los lugares libres disponibles en:")
+
+        print("Fecha seleccionada:", fecha)
         for piso in resultados:
             print("-------------------------------------------------------------------")
             print("Piso: " + piso)
@@ -406,8 +591,11 @@ def filtrarPorAtributoSimple(pisos):
                 print()
         print("-------------------------------------------------------------------")
     else:
-        print("\nNo se encontraron lugares libres con ese atributo.")
+        print("\nNo se encontraron lugares libres con ese atributo para esa fecha.")
+
     input("\nPresione enter para volver al menú principal...")
+
+
 
 def analisisUsuarios(pisos):
     print("\n=== ACCESO RESTRINGIDO ===")
@@ -416,15 +604,20 @@ def analisisUsuarios(pisos):
         print("\n Contraseña incorrecta. No tenés permiso para acceder al análisis de usuarios.")
         return
 
+    pisos_actualizados = cargar_pisos()
+    reservas_actualizadas = cargar_reservas_globales()
+
     print("\n=== Análisis de Usuarios ===")
+
     usuarios_por_piso = []
-    for piso in pisos:
+    for piso in pisos_actualizados:
         usuarios = set()
         for clave in piso:
             if clave not in ["nombre", "tipo", "descripcion"]:
                 for lugar in piso[clave]:
-                    if lugar["usuario"]:
-                        usuarios.add(lugar["usuario"])
+                    for r in lugar.get("reservas", []):
+                        if r.get("usuario"):
+                            usuarios.add(r["usuario"])
         usuarios_por_piso.append(usuarios)
 
     if len(usuarios_por_piso) < 2:
@@ -433,28 +626,21 @@ def analisisUsuarios(pisos):
 
     union_usuarios = set.union(*usuarios_por_piso)
     interseccion_usuarios = set.intersection(*usuarios_por_piso)
-    diferencia_usuarios = usuarios_por_piso[0].difference(usuarios_por_piso[1])
+    otros = set.union(*usuarios_por_piso[1:]) if len(usuarios_por_piso) > 1 else set()
+    diferencia_usuarios = usuarios_por_piso[0].difference(otros)
 
     print("\n RESULTADOS DEL ANÁLISIS\n")
     print("► Usuarios en cualquier piso (unión):")
-    if union_usuarios:
-        print("   ", ", ".join(sorted(union_usuarios)))
-    else:
-        print("   Ninguno")
+    print("   ", ", ".join(sorted(union_usuarios)) if union_usuarios else "   Ninguno")
 
     print("\n► Usuarios que reservaron en más de un piso (intersección):")
-    if interseccion_usuarios:
-        print("   ", ", ".join(sorted(interseccion_usuarios)))
-    else:
-        print("   Ninguno")
+    print("   ", ", ".join(sorted(interseccion_usuarios)) if interseccion_usuarios else "   Ninguno")
 
-    print(f"\n► Usuarios que reservaron solo en {pisos[0]['nombre']} y no en {pisos[1]['nombre']}:")
-    if diferencia_usuarios:
-        print("   ", ", ".join(sorted(diferencia_usuarios)))
-    else:
-        print("   Ninguno")
+    print(f"\n► Usuarios que reservaron solo en {pisos_actualizados[0]['nombre']} y no en los demás pisos:")
+    print("   ", ", ".join(sorted(diferencia_usuarios)) if diferencia_usuarios else "   Ninguno")
 
     print("\nFin del análisis.\n")
+
 
 def menuUsuario(pisos, usuario):
     while True:
@@ -465,9 +651,9 @@ def menuUsuario(pisos, usuario):
         print("4. Consulta total de lugares libres(Vista numerica)")
         print("5. Consultar disponibilidad por piso")
         print("6. Ver todos los lugares libres(Vista Grafica)")
-        print("7. Mostrar porcentajes de ocupación")
-        print("8. Filtrar lugares por atributo")
-        print("9. Ver estadísticas globales")
+        print("7. Mostrar porcentajes de ocupación por edificio")
+        print("8. Filtrar lugares libres por atributo")
+        print("9. Ver estadísticas globales de un dia")
         print("10. Análisis de usuarios")
         print("0. Salir")
         op = input("\n✶ Elegí una opción: ").strip()
@@ -478,10 +664,9 @@ def menuUsuario(pisos, usuario):
         elif op == "3":
             liberarLugarPrivado(pisos, usuario)
         elif op == "4":
-            consultaTotal(pisos)
+            consultaTotal()
         elif op == "5":
-            piso_num = int(input("Número de piso: ")) - 1
-            consultarDisponibilidad(pisos, piso_num)
+            consultarDisponibilidad(pisos)
         elif op == "6":
             verLugaresLibres(pisos)
         elif op == "7":
