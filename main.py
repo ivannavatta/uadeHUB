@@ -182,13 +182,17 @@ def reservarLugarPrivado(pisos, usuario):
     print(f"\n=== Lugares disponibles en {piso['nombre']} ({tipo}) para el {fecha} ===")
     libres = []
     for i, l in enumerate(lugares, start=1):
-        reservado = any(
-            r["piso"] == piso["nombre"] and
-            r["tipo"] == tipo and
-            r["lugar"] == i and
-            r.get("fecha") == fecha
-            for r in reservas_globales
-        )
+
+        reservado = False
+        for r in reservas_globales:
+            if (
+                r["piso"] == piso["nombre"] and
+                r["tipo"] == tipo and
+                r["lugar"] == i and
+                r.get("fecha") == fecha
+            ):
+                reservado = True
+                break
 
         estado = "❌ Ocupado" if reservado else "✅ Libre"
 
@@ -239,26 +243,6 @@ def reservarLugarPrivado(pisos, usuario):
             print("Opción inválida, escribí 's' o 'n'.")
 
 
-
-
-
-def validar_fecha(fecha):
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", fecha):
-        return False
-    partes = fecha.split("-")
-    anio, mes, dia = int(partes[0]), int(partes[1]), int(partes[2])
-    if anio < 2024 or mes < 1 or mes > 12 or dia < 1 or dia > 31:
-        return False
-    return True
-
-def extraer_numero(texto):
-    numero = ""
-    for c in texto:
-        if c.isdigit():
-            numero += c
-    if numero == "":
-        return None
-    return int(numero)
 
 def liberarLugarPrivado(pisos, usuario):
     ver_mis_reservas(usuario)
@@ -368,20 +352,27 @@ def consultarDisponibilidad(pisos):
             print(f"\nTipo: {clave}")
             lugares = piso[clave]
             for i, l in enumerate(lugares, start=1):
-                reservado = any(
-                    r["piso"] == piso["nombre"]
-                    and r["tipo"] == clave
-                    and r["lugar"] == i
-                    and r["fecha"] == fecha
-                    for r in reservas_globales
-                )
+
+                reservado = False
+                for r in reservas_globales:
+                    if (
+                        r["piso"] == piso["nombre"]
+                        and r["tipo"] == clave
+                        and r["lugar"] == i
+                        and r["fecha"] == fecha
+                    ):
+                        reservado = True
+                        break
+
                 estado = "❌ Ocupado" if reservado else "✅ Libre"
+
                 atributos = []
                 if l.get("enchufe"):
                     atributos.append("Enchufe")
                 if l.get("pizarron"):
                     atributos.append("Pizarrón")
                 attr_txt = f" ({', '.join(atributos)})" if atributos else ""
+
                 print(f"  Lugar {i}: {estado}{attr_txt}")
 
 
@@ -403,7 +394,8 @@ def verLugaresLibres(pisos):
     print(f"\n=== Lugares libres para el {fecha} ===")
     for piso in pisos:
         print(f"\n{piso['nombre']}")
-        tipos = [k for k in piso if k not in ["nombre", "tipo", "descripcion"]]
+
+        tipos = list(filter(lambda k: k not in ["nombre", "tipo", "descripcion"], piso.keys()))
 
         for tipo in tipos:
             print(f"\nTipo: {tipo}")
@@ -413,9 +405,15 @@ def verLugaresLibres(pisos):
             for i, l in enumerate(lugares, start=1):
                 reservado = False
                 for r in reservas_globales:
-                    if r["piso"] == piso["nombre"] and r["tipo"] == tipo and r["lugar"] == i and r["fecha"] == fecha:
+                    if (
+                        r["piso"] == piso["nombre"]
+                        and r["tipo"] == tipo
+                        and r["lugar"] == i
+                        and r["fecha"] == fecha
+                    ):
                         reservado = True
                         break
+
                 if not reservado:
                     libres.append(str(i))
 
@@ -424,6 +422,9 @@ def verLugaresLibres(pisos):
                     print("  ".join(libres[inicio:inicio+5]))
             else:
                 print("No hay lugares libres en este tipo")
+
+
+        
 def mostrarPorcentajes(pisos):
     fechas_disponibles = FECHAS_DISPONIBLES
     print("\nFechas disponibles:")
