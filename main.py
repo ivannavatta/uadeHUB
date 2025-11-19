@@ -1,11 +1,16 @@
 import re
 from functools import reduce
-
-ARCHIVO_GLOBAL = "reservas_globales.txt"
-FECHAS_DISPONIBLES = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+from datetime import datetime, timedelta
 
 #FUNCIONES DE CARGA
 
+ARCHIVO_GLOBAL = "reservas_globales.txt"
+
+def generar_fechas_disponibles():
+    hoy = datetime.now()
+    return [(hoy + timedelta(days=i)).strftime("%d-%m") for i in range(5)]
+
+FECHAS_DISPONIBLES = generar_fechas_disponibles()
 
 def login():
     print("=== Inicio de sesión en UADE Desk Finder ===")
@@ -134,7 +139,7 @@ def ver_mis_reservas(usuario):
             print(f"{i}. {r}")
 
 def reservarLugarPrivado(pisos, usuario):
-    fechas_disponibles = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+    fechas_disponibles = FECHAS_DISPONIBLES
 
     print("\nPisos disponibles:")
     for i, piso_dict in enumerate(pisos, start=1):
@@ -289,7 +294,7 @@ def liberarLugarPrivado(pisos, usuario):
 
 
 def consultaTotal():
-    fechas_disponibles = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+    fechas_disponibles = FECHAS_DISPONIBLES
     pisos = cargar_pisos()
     print("\n=== Consulta total de lugares libres ===")
     print("Fechas disponibles:")
@@ -321,7 +326,7 @@ def consultaTotal():
         print(f"{piso['nombre']}: {total_libres} libres")
 
 def consultarDisponibilidad(pisos):
-    fechas_disponibles = ["14-11", "15-11", "17-11", "18-11", "19-11"]
+    fechas_disponibles = FECHAS_DISPONIBLES
 
     print("\nPisos disponibles:")
     for i, piso_dict in enumerate(pisos, start=1):
