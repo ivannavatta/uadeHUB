@@ -2,9 +2,10 @@ import re
 from functools import reduce
 from datetime import datetime, timedelta
 
-#FUNCIONES DE CARGA
+ARCHIVO_RESERVAS = "reservas.txt"
+ARCHIVO_CLIENTES = "clientes.txt"
 
-ARCHIVO_GLOBAL = "reservas_globales.txt"
+#FUNCIONES DE CARGA
 
 def generar_fechas_disponibles():
     hoy = datetime.now()
@@ -22,61 +23,51 @@ def login():
     while not re.match(r"^\d{7}$", legajo):
         legajo = input("El legajo debe tener 7 dígitos. Volvé a ingresarlo: ").strip()
 
-    archivo = f"{legajo}.txt"
-    reservas = []
+    usuario_encontrado = False
 
     try:
-        with open(archivo, "r", encoding="utf-8") as f:
-            lineas = [l.strip() for l in f.readlines() if l.strip()]
-        if not lineas:
-            print("\nError: archivo vacío o dañado. No se puede acceder.")
-            return None
-        nombre_guardado = lineas[0]
-        if nombre_guardado.lower() != nombre.lower():
-            print(f"\n El legajo {legajo} pertenece a otro usuario ({nombre_guardado}).")
-            print("No podés iniciar sesión con un nombre diferente.")
-            return None
-        reservas = lineas[1:]
-        print(f"\n¡Bienvenido de nuevo, {nombre_guardado}!")
+        with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as f:
+            for linea in f:
+                n, l = linea.strip().split("|")
+                if l == legajo:
+                    usuario_encontrado = True
+                    if n.lower() != nombre.lower():
+                        print(f"\nEl legajo {legajo} pertence a {n}, no a {nombre}.")
+                        return None
+                    print(f"\n¡Bienvenido de nuevo, {n}!")
+                    break
     except FileNotFoundError:
-        with open(archivo, "w", encoding="utf-8") as f:
-            f.write(nombre + "\n")
+        with open(ARCHIVO_CLIENTES, "w", encoding="utf-8"):
+            pass
+
+    if not usuario_encontrado:
+        with open(ARCHIVO_CLIENTES, "a", encoding="utf-8") as f:
+            f.write(f"{nombre}|{legajo}\n")
         print(f"\nCuenta creada para {nombre} (Legajo: {legajo}).")
 
-    return {"nombre": nombre, "legajo": legajo, "archivo": archivo, "reservas": reservas}
-def guardar_reservas(usuario):
-    with open(usuario["archivo"], "w", encoding="utf-8") as f:
-        f.write(usuario["nombre"] + "\n")
-        for r in usuario["reservas"]:
-            f.write(r + "\n")
+    return {"nombre": nombre, "legajo": legajo, "reservas": []}
 
-def guardar_reservas_global(pisos):
-    with open(ARCHIVO_GLOBAL, "w", encoding="utf-8") as f:
-        for piso in pisos:
-            for clave in piso:
-                if clave not in ["nombre", "tipo", "descripcion"]:
-                    for i, lugar in enumerate(piso[clave], start=1):
-                        if "reservas" in lugar:
-                            for r in lugar["reservas"]:
-                                f.write(f"{piso['nombre']}|{clave}|{i}|{r['usuario']}|{r['fecha']}\n")
+
+def guardar_reserva_global(piso, tipo, lugar, legajo, fecha):
+    with open(ARCHIVO_RESERVAS, "a", encoding="utf-8") as f:
+        f.write(f"{piso}|{tipo}|{lugar}|{legajo}|{fecha}\n")
 
 def cargar_reservas_globales():
     reservas = []
     try:
-        with open(ARCHIVO_GLOBAL, "r", encoding="utf-8") as f:
+        with open(ARCHIVO_RESERVAS, "r", encoding="utf-8") as f:
             for linea in f:
-                partes = linea.strip().split("|")
-                if len(partes) == 5:
-                    reservas.append({
-                        "piso": partes[0],
-                        "tipo": partes[1],
-                        "lugar": int(partes[2]),
-                        "usuario": partes[3],
-                        "fecha": partes[4]
-                    })
+                p, t, l, leg, fch = linea.strip().split("|")
+                reservas.append({
+                    "piso": p,
+                    "tipo": t,
+                    "lugar": int(l),
+                    "legajo": leg,
+                    "fecha": fch
+                })
     except FileNotFoundError:
-        with open(ARCHIVO_GLOBAL, "w", encoding="utf-8") as f:
-            f.write("")
+        with open(ARCHIVO_RESERVAS, "w", encoding="utf-8"):
+            pass
     return reservas
 
 
@@ -120,7 +111,7 @@ def cargar_pisos():
             if piso["nombre"] == r["piso"]:
                 if r["tipo"] in piso and len(piso[r["tipo"]]) >= r["lugar"]:
                     piso[r["tipo"]][r["lugar"] - 1]["reservas"].append({
-                        "usuario": r["usuario"],
+                        "legajo": r["legajo"],
                         "fecha": r["fecha"]
                     })
     return pisos
@@ -131,12 +122,27 @@ def cargar_pisos():
 
 
 def ver_mis_reservas(usuario):
-    if not usuario["reservas"]:
+    legajo = usuario["legajo"]
+    mis_reservas = []
+
+    try:
+        with open("reservas.txt", "r", encoding="utf-8") as f:
+            for linea in f:
+                piso, tipo, lugar, leg, fecha = linea.strip().split("|")
+                if leg == legajo:
+                    mis_reservas.append(
+                        f"{piso} | {tipo} | Lugar {lugar} | Fecha {fecha}"
+                    )
+    except FileNotFoundError:
+        open("reservas.txt", "w", encoding="utf-8").close()
+
+    if not mis_reservas:
         print("\nNo tenés reservas activas.")
     else:
         print("\nTus reservas activas:")
-        for i, r in enumerate(usuario["reservas"], start=1):
+        for i, r in enumerate(mis_reservas, start=1):
             print(f"{i}. {r}")
+
 
 def reservarLugarPrivado(pisos, usuario):
     fechas_disponibles = FECHAS_DISPONIBLES
@@ -229,10 +235,13 @@ def reservarLugarPrivado(pisos, usuario):
     texto_reserva = f"{piso['nombre']} | {tipo} | Lugar {lugar_num} | Fecha {fecha}"
     usuario["reservas"].append(texto_reserva)
 
-    guardar_reservas(usuario)
-
-    with open(ARCHIVO_GLOBAL, "a", encoding="utf-8") as f:
-        f.write(f"{piso['nombre']}|{tipo}|{lugar_num}|{usuario['nombre']}|{fecha}\n")
+    guardar_reserva_global(
+        piso=piso["nombre"],
+        tipo=tipo,
+        lugar=lugar_num,
+        legajo=usuario["legajo"],
+        fecha=fecha
+    )
 
     print(f"\n¡Listo {usuario['nombre']}! Reservaste el {texto_reserva}.\n")
 
@@ -249,41 +258,46 @@ def reservarLugarPrivado(pisos, usuario):
 
 
 
-def liberarLugarPrivado(pisos, usuario):
-    ver_mis_reservas(usuario)
-    if not usuario["reservas"]:
+def liberarLugarPrivado(usuario):
+    legajo = usuario["legajo"]
+    reservas_usuario = []
+
+    with open("reservas.txt", "r", encoding="utf-8") as f:
+        lineas = f.readlines()
+
+    for linea in lineas:
+        piso, tipo, lugar, leg, fecha = linea.strip().split("|")
+        if leg == legajo:
+            reservas_usuario.append((linea, f"{piso} | {tipo} | Lugar {lugar} | Fecha {fecha}"))
+
+    if not reservas_usuario:
+        print("No tenés reservas para liberar.")
         return
-    num = input("\n✶ Ingresá el número de la reserva a liberar (0 para volver): ").strip()
-    if num == "0":
-        return
-    while not num.isdigit() or int(num) < 1 or int(num) > len(usuario["reservas"]):
-        num = input("Número inválido, intentá de nuevo (0 para volver): ").strip()
-        if num == "0":
-            return
-    num = int(num)
-    reserva = usuario["reservas"].pop(num - 1)
-    guardar_reservas(usuario)
 
-    partes = [p.strip() for p in reserva.split("|")]
-    piso_nombre = partes[0]
-    tipo = partes[1]
-    lugar_num = int(''.join([c for c in partes[2] if c.isdigit()]))
-    fecha = partes[3].replace("Fecha ", "")
+    print("\nTus reservas:")
+    for i, (_, texto) in enumerate(reservas_usuario, 1):
+        print(f"{i}. {texto}")
 
-    for piso in pisos:
-        if piso["nombre"] == piso_nombre:
-            lugar_lista = piso[tipo]
-            lugar_lista[lugar_num - 1]["reservas"] = [
-                r for r in lugar_lista[lugar_num - 1]["reservas"]
-                if not (r["usuario"] == usuario["nombre"] and r["fecha"] == fecha)
-            ]
+    while True:
+        opcion = input("Elegí cuál querés liberar (número): ")
+        if opcion.isdigit() and 1 <= int(opcion) <= len(reservas_usuario):
+            break
+        print("Opción inválida.")
 
-    guardar_reservas_global(pisos)
-    print(f"\nReserva liberada: {reserva}\n")
+    linea_a_borrar = reservas_usuario[int(opcion) - 1][0]
+
+    with open("reservas.txt", "w", encoding="utf-8") as f:
+        for linea in lineas:
+            if linea != linea_a_borrar:
+                f.write(linea)
+
+    print("Reserva cancelada con éxito.")
+
+    print(f"\nReserva liberada! \n")
     while True:
         opcion = input("¿Querés liberar otra reserva? (s/n): ").strip().lower()
         if opcion == "s":
-            liberarLugarPrivado(pisos, usuario)
+            liberarLugarPrivado(usuario)
             break
         elif opcion == "n":
             print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
@@ -604,48 +618,68 @@ def filtrarPorAtributoSimple(pisos):
 
 
 def analisisUsuarios(pisos):
-    print("\n=== ACCESO RESTRINGIDO ===")
-    clave = input("Ingresá la contraseña de administrador: ").strip()
-    if clave != "uade":
-        print("\n Contraseña incorrecta. No tenés permiso para acceder al análisis de usuarios.")
+    clave_admin = input("Ingresá la contraseña de administrador: ").strip()
+    if clave_admin != "uade":
+        print("Contraseña incorrecta.")
         return
 
-    pisos_actualizados = cargar_pisos()
-    reservas_actualizadas = cargar_reservas_globales()
+    try:
+        with open("reservas.txt", "r", encoding="utf-8") as f:
+            lineas = [l.strip() for l in f if l.strip()]
+    except FileNotFoundError:
+        print("No existe reservas.txt")
+        return
 
-    print("\n=== Análisis de Usuarios ===")
+    try:
+        with open("clientes.txt", "r", encoding="utf-8") as f:
+            clientes = {}
+            for l in f:
+                partes = l.strip().split("|")
+                if len(partes) == 2:
+                    nombre, legajo = partes
+                    clientes[legajo.strip()] = nombre.strip()
+    except FileNotFoundError:
+        print("No existe clientes.txt")
+        return
 
     usuarios_por_piso = []
-    for piso in pisos_actualizados:
+    for piso in pisos:
         usuarios = set()
-        for clave in piso:
-            if clave not in ["nombre", "tipo", "descripcion"]:
-                for lugar in piso[clave]:
-                    for r in lugar.get("reservas", []):
-                        if r.get("usuario"):
-                            usuarios.add(r["usuario"])
+        for linea in lineas:
+            partes = linea.split("|")
+            if len(partes) < 5:
+                continue
+            nombre_piso = partes[0].strip()
+            tipo, lugar, legajo, fecha = partes[1:5]
+            legajo = legajo.strip()
+            nombre = clientes.get(legajo, "Desconocido")
+            usuario = f"{nombre} ({legajo})"
+            if nombre_piso == piso["nombre"]:
+                usuarios.add(usuario)
         usuarios_por_piso.append(usuarios)
 
-    if len(usuarios_por_piso) < 2:
-        print("\n No hay suficientes pisos para realizar comparaciones (se necesitan al menos 2).")
+    if not usuarios_por_piso:
+        print("No hay pisos para analizar.")
         return
 
     union_usuarios = set.union(*usuarios_por_piso)
     interseccion_usuarios = set.intersection(*usuarios_por_piso)
-    otros = set.union(*usuarios_por_piso[1:]) if len(usuarios_por_piso) > 1 else set()
-    diferencia_usuarios = usuarios_por_piso[0].difference(otros)
+    diferencia_usuarios = usuarios_por_piso[0].difference(*usuarios_por_piso[1:])
 
-    print("\n RESULTADOS DEL ANÁLISIS\n")
-    print("► Usuarios en cualquier piso (unión):")
-    print("   ", ", ".join(sorted(union_usuarios)) if union_usuarios else "   Ninguno")
+    print("\n=== Análisis de Usuarios ===\n")
+    print("Usuarios en cualquier piso:")
+    print(", ".join(sorted(union_usuarios)) if union_usuarios else "Ninguno")
 
-    print("\n► Usuarios que reservaron en más de un piso (intersección):")
-    print("   ", ", ".join(sorted(interseccion_usuarios)) if interseccion_usuarios else "   Ninguno")
+    print("\nUsuarios que reservaron en más de un piso:")
+    
+    varios_pisos = {u for u in union_usuarios if sum(u in piso for piso in usuarios_por_piso) > 1}
+    print(", ".join(sorted(varios_pisos)) if varios_pisos else "Ninguno")
 
-    print(f"\n► Usuarios que reservaron solo en {pisos_actualizados[0]['nombre']} y no en los demás pisos:")
-    print("   ", ", ".join(sorted(diferencia_usuarios)) if diferencia_usuarios else "   Ninguno")
+    print(f"\nUsuarios solo en {pisos[0]['nombre']}:")
+    print(", ".join(sorted(diferencia_usuarios)) if diferencia_usuarios else "Ninguno")
 
-    print("\nFin del análisis.\n")
+
+
 
 
 def menuUsuario(pisos, usuario):
@@ -668,7 +702,7 @@ def menuUsuario(pisos, usuario):
         elif op == "2":
             reservarLugarPrivado(pisos, usuario)
         elif op == "3":
-            liberarLugarPrivado(pisos, usuario)
+            liberarLugarPrivado(usuario)
         elif op == "4":
             consultaTotal()
         elif op == "5":
