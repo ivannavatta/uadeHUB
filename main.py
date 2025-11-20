@@ -279,7 +279,9 @@ def liberarLugarPrivado(usuario):
         print(f"{i}. {texto}")
 
     while True:
-        opcion = input("Elegí cuál querés liberar (número): ")
+        opcion = input("Elegí cuál querés liberar (número) o 0 para volver: ")
+        if opcion == "0":
+            return
         if opcion.isdigit() and 1 <= int(opcion) <= len(reservas_usuario):
             break
         print("Opción inválida.")
@@ -304,6 +306,7 @@ def liberarLugarPrivado(usuario):
             break
         else:
             print("Opción inválida, escribí 's' o 'n'.")
+
 
 
 
