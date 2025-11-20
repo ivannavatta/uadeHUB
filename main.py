@@ -338,6 +338,16 @@ def consultaTotal():
         )
 
         print(f"{piso['nombre']}: {total_libres} libres")
+    while True:
+        opcion = input("¿Querés hacer otra consulta? (s/n): ").strip().lower()
+        if opcion == "s":
+            consultaTotal()
+            break
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 def consultarDisponibilidad(pisos):
     fechas_disponibles = FECHAS_DISPONIBLES
@@ -393,57 +403,56 @@ def consultarDisponibilidad(pisos):
                 attr_txt = f" ({', '.join(atributos)})" if atributos else ""
 
                 print(f"  Lugar {i}: {estado}{attr_txt}")
+    while True:
+        opcion = input("¿Querés hacer otra consulta? (s/n): ").strip().lower()
+        if opcion == "s":
+            consultarDisponibilidad(pisos)
+            break
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 
 
-def verLugaresLibres(pisos):
-    fechas_disponibles = FECHAS_DISPONIBLES
+def obtenerFechasConAltaDemanda(min_reservas):
+    while True:
+        reservas = cargar_reservas_globales()
+        fechas = set(r["fecha"] for r in reservas)
 
-    print("\nFechas disponibles:")
-    for i, f in enumerate(fechas_disponibles, start=1):
-        print(f"{i}. {f}")
+        print("\n=== Fechas con alta demanda ===")
+        encontro = False
 
-    seleccion = input("\nElegí una fecha: ").strip()
-    while not seleccion.isdigit() or int(seleccion) < 1 or int(seleccion) > len(fechas_disponibles):
-        seleccion = input("Número inválido, probá nuevamente: ").strip()
+        for fecha in fechas:
+            cantidad = len(list(filter(lambda r: r["fecha"] == fecha, reservas)))
+            if cantidad >= min_reservas:
+                print(f"- {fecha}: {cantidad} reservas")
+                encontro = True
 
-    fecha = fechas_disponibles[int(seleccion) - 1]
-    reservas_globales = cargar_reservas_globales()
+        if not encontro:
+            print("No hay fechas con esa cantidad mínima de reservas.")
 
-    print(f"\n=== Lugares libres para el {fecha} ===")
-    for piso in pisos:
-        print(f"\n{piso['nombre']}")
+        opcion = input("\n¿Querés hacer otra consulta? (s/n): ").strip().lower()
+        if opcion == "s":
 
-        tipos = list(filter(lambda k: k not in ["nombre", "tipo", "descripcion"], piso.keys()))
+            while True:
+                buscada = input("Ingrese la cantidad de reservas mínimas a buscar: ").strip()
+                if buscada.isdigit():
+                    min_reservas = int(buscada)
+                    break
+                else:
+                    print("Ingresá un número válido.")
 
-        for tipo in tipos:
-            print(f"\nTipo: {tipo}")
-            lugares = piso[tipo]
-            libres = []
-
-            for i, l in enumerate(lugares, start=1):
-                reservado = False
-                for r in reservas_globales:
-                    if (
-                        r["piso"] == piso["nombre"]
-                        and r["tipo"] == tipo
-                        and r["lugar"] == i
-                        and r["fecha"] == fecha
-                    ):
-                        reservado = True
-                        break
-
-                if not reservado:
-                    libres.append(str(i))
-
-            if libres:
-                for inicio in range(0, len(libres), 5):
-                    print("  ".join(libres[inicio:inicio+5]))
-            else:
-                print("No hay lugares libres en este tipo")
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 
-        
+
+ 
 def mostrarPorcentajes(pisos):
     fechas_disponibles = FECHAS_DISPONIBLES
     print("\nFechas disponibles:")
@@ -487,6 +496,16 @@ def mostrarPorcentajes(pisos):
                 piso_mas_ocupado = nombre
 
         print(f"\nPiso más ocupado: {piso_mas_ocupado} ({max_ocupacion:.2f}% ocupación)")
+    while True:
+        opcion = input("¿Querés hacer otra consulta? (s/n): ").strip().lower()
+        if opcion == "s":
+            mostrarPorcentajes(pisos)
+            break
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 
 def estadisticasGlobales(pisos):
@@ -614,6 +633,16 @@ def filtrarPorAtributoSimple(pisos):
         print("\nNo se encontraron lugares libres con ese atributo para esa fecha.")
 
     input("\nPresione enter para volver al menú principal...")
+    while True:
+        opcion = input("¿Querés hacer otra consulta? (s/n): ").strip().lower()
+        if opcion == "s":
+            filtrarPorAtributoSimple(pisos)
+            break
+        elif opcion == "n":
+            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
+            break
+        else:
+            print("Opción inválida, escribí 's' o 'n'.")
 
 
 
@@ -690,7 +719,7 @@ def menuUsuario(pisos, usuario):
         print("3. Liberar una reserva")
         print("4. Consulta total de lugares libres(Vista numerica)")
         print("5. Consultar disponibilidad por piso")
-        print("6. Ver todos los lugares libres(Vista Grafica)")
+        print("6. Consultar fechas demandadas")
         print("7. Mostrar porcentajes de ocupación por edificio")
         print("8. Filtrar lugares libres por atributo")
         print("9. Ver estadísticas globales de un dia")
@@ -708,7 +737,15 @@ def menuUsuario(pisos, usuario):
         elif op == "5":
             consultarDisponibilidad(pisos)
         elif op == "6":
-            verLugaresLibres(pisos)
+            while True:
+                buscada = input("Ingrese la cantidad de reservas mínimas a buscar: ").strip()
+                if buscada.isdigit():
+                    buscada = int(buscada)
+                    break
+                else:
+                    print("Ingresá un número válido.")
+
+            obtenerFechasConAltaDemanda(buscada)
         elif op == "7":
             mostrarPorcentajes(pisos)
         elif op == "8":
