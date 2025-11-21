@@ -116,6 +116,32 @@ def cargar_pisos():
                     })
     return pisos
 
+def ordenar_archivo_reservas():
+    try:
+        with open(ARCHIVO_RESERVAS, "r", encoding="utf-8") as f:
+            lineas = f.readlines()
+
+        if not lineas:
+            print("El archivo está vacío. No hay nada para ordenar.")
+            return
+
+        matriz = [linea.strip().split("|") for linea in lineas]
+
+        def extraer_fecha(fila):
+            dia, mes = map(int, fila[-1].split("-"))
+            return (mes, dia)
+
+        matriz_ordenada = sorted(matriz, key=extraer_fecha)
+
+        with open(ARCHIVO_RESERVAS, "w", encoding="utf-8") as f:
+            for fila in matriz_ordenada:
+                f.write("|".join(fila) + "\n")
+
+        print("Archivo de reservas ordenado correctamente.")
+    except FileNotFoundError:
+        print("No se encontró el archivo de reservas.")
+
+
 
 #FUNCIONES DE USUARIO
 
@@ -758,6 +784,7 @@ def menuUsuario(pisos, usuario):
         elif op == "10":
             analisisUsuarios(pisos)
         elif op == "0":
+            ordenar_archivo_reservas()
             print("\n¡Hasta pronto!")
             break
         else:
