@@ -13,8 +13,13 @@ def generar_fechas_disponibles():
 
 FECHAS_DISPONIBLES = generar_fechas_disponibles()
 
+
+
+
 def login():
+
     print("=== Inicio de sesión en UADE Desk Finder ===")
+
     nombre = input("Nombre: ").strip()
     while not re.match(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$", nombre):
         nombre = input("Solo letras y espacios, por favor: ").strip()
@@ -23,29 +28,53 @@ def login():
     while not re.match(r"^\d{7}$", legajo):
         legajo = input("El legajo debe tener 7 dígitos. Volvé a ingresarlo: ").strip()
 
-    usuario_encontrado = False
+    email = input("Email institucional (ej: nombre.apellido@uade.edu.ar): ").strip()
+    while not re.match(r"^[^@\s]+@uade\.edu\.ar$", email, flags=re.IGNORECASE):
+        email = input("Email inválido. Debe terminar en @uade.edu.ar: ").strip()
+    email = email.lower()
+
+    # Cargar todos los registros y construir índices para validaciones
+    legajo_a_reg = {}
+    email_a_legajo = {} 
 
     try:
         with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as f:
             for linea in f:
-                n, l = linea.strip().split("|")
-                if l == legajo:
-                    usuario_encontrado = True
-                    if n.lower() != nombre.lower():
-                        print(f"\nEl legajo {legajo} pertence a {n}, no a {nombre}.")
-                        return None
-                    print(f"\n¡Bienvenido de nuevo, {n}!")
-                    break
+                linea = linea.strip()
+                if not linea:
+                    continue
+                partes = linea.split("|")
+                if len(partes) < 3:
+                    continue
+                n, l, e = partes[0].strip(), partes[1].strip(), partes[2].strip().lower()
+                if l not in legajo_a_reg:
+                    legajo_a_reg[l] = (n, e)
+                if e not in email_a_legajo:
+                    email_a_legajo[e] = l
     except FileNotFoundError:
-        with open(ARCHIVO_CLIENTES, "w", encoding="utf-8"):
-            pass
+        pass
 
-    if not usuario_encontrado:
-        with open(ARCHIVO_CLIENTES, "a", encoding="utf-8") as f:
-            f.write(f"{nombre}|{legajo}\n")
-        print(f"\nCuenta creada para {nombre} (Legajo: {legajo}).")
+    if legajo in legajo_a_reg:
+        _, email_registrado = legajo_a_reg[legajo]
+        if email_registrado != email:
+            print(f"\nConflicto: el legajo {legajo} está registrado con el email {email_registrado}.")
+            print("Usá ese email o contactá soporte.")
+            return None
+        print(f"\n¡Bienvenido de nuevo, {legajo_a_reg[legajo][0]}!")
+        return {"nombre": legajo_a_reg[legajo][0], "legajo": legajo, "email": email, "reservas": []}
 
-    return {"nombre": nombre, "legajo": legajo, "reservas": []}
+    if email in email_a_legajo:
+        legajo_existente = email_a_legajo[email]
+        print(f"\nConflicto: el email {email} ya está asociado al legajo {legajo_existente}.")
+        print("No puede existir el mismo email para varios legajos. Contactá soporte si es un error.")
+        return None
+
+    with open(ARCHIVO_CLIENTES, "a", encoding="utf-8") as f:
+        f.write(f"{nombre}|{legajo}|{email}\n")
+    print(f"\nCuenta creada para {nombre} (Legajo: {legajo}, Email: {email}).")
+    return {"nombre": nombre, "legajo": legajo, "email": email, "reservas": []}
+
+
 
 
 def guardar_reserva_global(piso, tipo, lugar, legajo, fecha):
@@ -445,39 +474,29 @@ def consultarDisponibilidad(pisos):
 
 
 
-def obtenerFechasConAltaDemanda(min_reservas):
-    while True:
-        reservas = cargar_reservas_globales()
-        fechas = set(r["fecha"] for r in reservas)
+def obtenerFechasConAltaDemanda():
+    reservas = cargar_reservas_globales()
 
-        print("\n=== Fechas con alta demanda ===")
-        encontro = False
+    # Contar reservas por fecha
+    conteo = {}
+    for r in reservas:
+        fecha = r["fecha"]
+        conteo[fecha] = conteo.get(fecha, 0) + 1
 
-        for fecha in fechas:
-            cantidad = len(list(filter(lambda r: r["fecha"] == fecha, reservas)))
-            if cantidad >= min_reservas:
-                print(f"- {fecha}: {cantidad} reservas")
-                encontro = True
+    # Ordenar por cantidad de reservas (de mayor a menor)
+    fechas_ordenadas = sorted(conteo.items(), key=lambda x: x[1], reverse=True)
 
-        if not encontro:
-            print("No hay fechas con esa cantidad mínima de reservas.")
+    print("\n=== Fechas con mayor demanda ===")
 
-        opcion = input("\n¿Querés hacer otra consulta? (s/n): ").strip().lower()
-        if opcion == "s":
+    if not fechas_ordenadas:
+        print("No hay reservas registradas.")
+        return
 
-            while True:
-                buscada = input("Ingrese la cantidad de reservas mínimas a buscar: ").strip()
-                if buscada.isdigit():
-                    min_reservas = int(buscada)
-                    break
-                else:
-                    print("Ingresá un número válido.")
+    for fecha, cantidad in fechas_ordenadas:
+        print(f"- {fecha}: {cantidad} reservas")
 
-        elif opcion == "n":
-            print("\nGracias por usar UADE Desk Finder. ¡Hasta pronto!\n")
-            break
-        else:
-            print("Opción inválida, escribí 's' o 'n'.")
+    print("\nGracias por usar UADE Desk Finder.\n")
+
 
 
 
@@ -688,14 +707,22 @@ def analisisUsuarios(pisos):
         print("No existe reservas.txt")
         return
 
+    # --- lectura robusta de clientes: aceptamos nombre|legajo o nombre|legajo|email ---
     try:
         with open("clientes.txt", "r", encoding="utf-8") as f:
             clientes = {}
             for l in f:
-                partes = l.strip().split("|")
-                if len(partes) == 2:
-                    nombre, legajo = partes
-                    clientes[legajo.strip()] = nombre.strip()
+                texto = l.strip()
+                if not texto:
+                    continue
+                partes = [p.strip() for p in texto.split("|")]
+                if len(partes) >= 2:
+                    nombre = partes[0]
+                    legajo = partes[1]
+                    if legajo:  # guardamos solo si hay legajo
+                        clientes[legajo] = nombre
+                else:
+                    continue
     except FileNotFoundError:
         print("No existe clientes.txt")
         return
@@ -704,10 +731,10 @@ def analisisUsuarios(pisos):
     for piso in pisos:
         usuarios = set()
         for linea in lineas:
-            partes = linea.split("|")
+            partes = [p.strip() for p in linea.split("|")]
             if len(partes) < 5:
                 continue
-            nombre_piso = partes[0].strip()
+            nombre_piso = partes[0]
             tipo, lugar, legajo, fecha = partes[1:5]
             legajo = legajo.strip()
             nombre = clientes.get(legajo, "Desconocido")
@@ -720,21 +747,22 @@ def analisisUsuarios(pisos):
         print("No hay pisos para analizar.")
         return
 
+
     union_usuarios = set.union(*usuarios_por_piso)
     interseccion_usuarios = set.intersection(*usuarios_por_piso)
-    diferencia_usuarios = usuarios_por_piso[0].difference(*usuarios_por_piso[1:])
+    diferencia_usuarios = usuarios_por_piso[0].difference(*usuarios_por_piso[1:]) if len(usuarios_por_piso) > 1 else usuarios_por_piso[0]
 
     print("\n=== Análisis de Usuarios ===\n")
     print("Usuarios en cualquier piso:")
     print(", ".join(sorted(union_usuarios)) if union_usuarios else "Ninguno")
 
     print("\nUsuarios que reservaron en más de un piso:")
-    
     varios_pisos = {u for u in union_usuarios if sum(u in piso for piso in usuarios_por_piso) > 1}
     print(", ".join(sorted(varios_pisos)) if varios_pisos else "Ninguno")
 
     print(f"\nUsuarios solo en {pisos[0]['nombre']}:")
     print(", ".join(sorted(diferencia_usuarios)) if diferencia_usuarios else "Ninguno")
+
 
 
 
@@ -766,15 +794,7 @@ def menuUsuario(pisos, usuario):
         elif op == "5":
             consultarDisponibilidad(pisos)
         elif op == "6":
-            while True:
-                buscada = input("Ingrese la cantidad de reservas mínimas a buscar: ").strip()
-                if buscada.isdigit():
-                    buscada = int(buscada)
-                    break
-                else:
-                    print("Ingresá un número válido.")
-
-            obtenerFechasConAltaDemanda(buscada)
+            obtenerFechasConAltaDemanda()
         elif op == "7":
             mostrarPorcentajes(pisos)
         elif op == "8":
