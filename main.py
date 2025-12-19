@@ -363,6 +363,30 @@ def liberarLugarPrivado(usuario):
             print("Opción inválida, escribí 's' o 'n'.")
 
 
+def contar_lugares_libres_recursivo(lugares, reservas, piso_nombre, tipo, fecha, indice=1):
+    # CASO BASE: no quedan lugares por analizar
+    if lugares == []:
+        return 0
+
+    # Analizar el primer lugar
+    reservado = False
+    for r in reservas:
+        if (
+            r["piso"] == piso_nombre and
+            r["tipo"] == tipo and
+            r["lugar"] == indice and
+            r["fecha"] == fecha
+        ):
+            reservado = True
+            break
+
+    # 1 si está libre, 0 si está ocupado
+    libres_actual = 0 if reservado else 1
+
+    # LLAMADA RECURSIVA
+    return libres_actual + contar_lugares_libres_recursivo(
+        lugares[1:], reservas, piso_nombre, tipo, fecha, indice + 1
+    )
 
 
 def consultaTotal():
@@ -381,19 +405,22 @@ def consultaTotal():
 
     print(f"\n=== Lugares libres para el {fecha} ===")
 
-    for piso in pisos:
+    reservas = cargar_reservas_globales()
 
-        total_libres = sum(
-            map(
-                lambda l: 1 if fecha not in [r["fecha"] for r in l["reservas"]] else 0,
-                (
-                    lugar
-                    for clave in piso
-                    if clave not in ["nombre", "tipo", "descripcion"]
-                    for lugar in piso[clave]
+    for piso in pisos:
+        total_libres = 0
+
+        for clave in piso:
+            if clave not in ["nombre", "tipo", "descripcion"]:
+                lugares = piso[clave]
+
+                total_libres += contar_lugares_libres_recursivo(
+                    lugares,
+                    reservas,
+                    piso["nombre"],
+                    clave,
+                    fecha
                 )
-            )
-        )
 
         print(f"{piso['nombre']}: {total_libres} libres")
     while True:
@@ -810,12 +837,18 @@ def menuUsuario(pisos, usuario):
         else:
             print("Opción inválida, intentá de nuevo.")
 
-pisos = cargar_pisos()
-if not pisos:
-    print("No se pudieron cargar pisos. Cerrando programa.")
-else:
-    usuario = login()
-    if usuario is not None:
-        menuUsuario(pisos, usuario)
+def main():
+    pisos = cargar_pisos()
+    if not pisos:
+        print("No se pudieron cargar pisos. Cerrando programa.")
     else:
-        print("\nInicio de sesión cancelado por seguridad.\n")
+        usuario = login()
+        if usuario is not None:
+            menuUsuario(pisos, usuario)
+        else:
+            print("\nInicio de sesión cancelado por seguridad.\n")
+
+
+
+if __name__ == "__main__":
+    main()
